@@ -23,17 +23,6 @@ type Move struct {
 }
 
 type Grid [][]int
-type Sodoku interface {
-	nextCell() (Cell, bool)
-	getMoves(cell Cell) Moves
-	makeMove(move Move)
-	clearCell(cell Cell)
-	solve() bool
-	getSubGrid(cell Cell) []int
-	isValidMove(move Move) bool
-	isSolved() bool
-	print()
-}
 
 func (grid Grid) nextCell() (Cell, bool) {
 	for r, row := range grid {
