@@ -91,35 +91,34 @@ func (grid Grid) clearCell(cell Cell) {
 	grid[cell.row][cell.col] = 0
 }
 
-func (grid Grid) solve() bool {
+func (grid Grid) solve() (bool, error) {
 	cell, ok := grid.nextCell()
 	if !ok {
-		return true
+		return true, nil
 	}
 
 	moves := grid.getMoves(cell)
 	for _, move := range moves {
 		if grid.isValidMove(move) {
 			grid.makeMove(move)
-			if grid.solve() {
-				return true
+			if solved, _ := grid.solve(); solved {
+				return true, nil
 			}
 			grid.clearCell(cell)
 		}
 	}
 
-	return false
+	return false, fmt.Errorf("Error: Failed to solve to sodoku")
 }
 
 func (grid Grid) getSubGrid(cell Cell) []int {
 	sx := cell.row / SSIZE * SSIZE
 	sy := cell.col / SSIZE * SSIZE
-	ssize := int(SSIZE)
 
 	var value int
 	var subgrid []int
-	for i := sx; i < sx+ssize; i++ {
-		for j := sy; j < sy+ssize; j++ {
+	for i := sx; i < sx+SSIZE; i++ {
+		for j := sy; j < sy+SSIZE; j++ {
 			value = grid[i][j]
 			if value != 0 {
 				subgrid = append(subgrid, value)
@@ -159,16 +158,6 @@ func (grid Grid) isValidMove(move Move) bool {
 	return true
 }
 
-func (grid Grid) isSolved() bool {
-	for cell := range grid {
-		if cell == 0 {
-			return false
-		}
-	}
-
-	return true
-}
-
 func (grid Grid) print() {
 	for i := 0; i < SIZE; i++ {
 		for j := 0; j < SIZE; j++ {
@@ -188,6 +177,39 @@ func newGrid() Grid {
 	return tmp
 }
 
+func hasDuplication(xs []int) bool {
+	return true
+}
+
+func (grid Grid) hasDuplication() error {
+	// validate grid
+	// check rows
+	for i := 0; i < SIZE; i++ {
+		if hasDuplication(grid[i]) {
+			return fmt.Errorf("")
+		}
+	}
+
+	// check cols
+	for i := 0; i < SIZE; i++ {
+		if hasDuplication(grid[:][i]) {
+			return fmt.Errorf("")
+		}
+	}
+
+	// check subgrid
+	for i := 0; i < SIZE; i++ {
+		panic("todo!")
+		sx := i
+		sy := i
+		if hasDuplication(grid.getSubGrid(Cell{row: sx, col: sy})) {
+			return fmt.Errorf("")
+		}
+	}
+
+	return nil
+}
+
 func parseGridString(s string) (grid Grid, err error) {
 	tmp := newGrid()
 	flatGrid := strings.Split(strings.Replace(s, ".", "0", -1), "")
@@ -195,6 +217,7 @@ func parseGridString(s string) (grid Grid, err error) {
 		return grid, fmt.Errorf("Error: unable to parse input, had size %d, expected %d", len(flatGrid), SIZE*SIZE)
 	}
 
+	// construct grid
 	for i := 0; i < SIZE; i++ {
 		for j := 0; j < SIZE; j++ {
 			parsed, err := strconv.ParseInt(flatGrid[i*SIZE+j], 10, 0)
@@ -203,6 +226,10 @@ func parseGridString(s string) (grid Grid, err error) {
 				return grid, fmt.Errorf("Error: unable to parse digit in input: %s", flatGrid[i*SIZE+j])
 			}
 		}
+	}
+
+	if err := tmp.hasDuplication(); err != nil {
+		return nil, err
 	}
 
 	return tmp, nil
