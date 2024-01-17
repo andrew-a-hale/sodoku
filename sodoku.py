@@ -69,7 +69,7 @@ def is_valid_move(grid: GRID_T, cell: CELL_T, move: int) -> bool:
     # check column
     col = get_col(grid, cell[1])
     for i, val in enumerate(col):
-        if i == cell[1] and i != cell[0] and val == move:
+        if i != cell[0] and val == move:
             return False
 
     # check subgrid
