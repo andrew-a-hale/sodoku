@@ -141,8 +141,8 @@ func (grid Grid) isValidMove(move Move) bool {
 
 	// col check
 	for i := 0; i < SIZE; i++ {
-		val := grid[move.cell.row][i]
-		if i == int(move.cell.col) && i != int(move.cell.row) && val == move.val {
+		val := grid[i][move.cell.col]
+		if i != int(move.cell.row) && val == move.val {
 			return false
 		}
 	}
