@@ -8,8 +8,10 @@ import (
 	"strings"
 )
 
-const SIZE int = 9
-const SSIZE int = 3
+const (
+	SIZE  int = 9 // grid size
+	SSIZE int = 3 // subgrid size
+)
 
 type Cell struct {
 	row int
