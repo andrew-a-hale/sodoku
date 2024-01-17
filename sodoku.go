@@ -11,8 +11,6 @@ import (
 const SIZE int = 9
 const SSIZE int = 3
 
-type Grid [][]int
-
 type Cell struct {
 	row int
 	col int
@@ -22,6 +20,19 @@ type Moves []Move
 type Move struct {
 	cell Cell
 	val  int
+}
+
+type Grid [][]int
+type Sodoku interface {
+	nextCell() (Cell, bool)
+	getMoves(cell Cell) Moves
+	makeMove(move Move)
+	clearCell(cell Cell)
+	solve() bool
+	getSubGrid(cell Cell) []int
+	isValidMove(move Move) bool
+	isSolved() bool
+	print()
 }
 
 func (grid Grid) nextCell() (Cell, bool) {
@@ -52,7 +63,7 @@ func (grid Grid) getMoves(cell Cell) Moves {
 
 	// check row
 	for _, val := range grid[cell.row] {
-		if slices.Contains(remaining, val) {
+		if val != 0 && slices.Contains(remaining, val) {
 			remaining = removeDigit(remaining, val)
 		}
 	}
@@ -60,7 +71,7 @@ func (grid Grid) getMoves(cell Cell) Moves {
 	// check col
 	for i := 0; i < SIZE; i++ {
 		val := grid[i][cell.col]
-		if slices.Contains(remaining, val) {
+		if val != 0 && slices.Contains(remaining, val) {
 			remaining = removeDigit(remaining, val)
 		}
 	}
@@ -114,10 +125,14 @@ func (grid Grid) getSubGrid(cell Cell) []int {
 	sy := cell.col / SSIZE * SSIZE
 	ssize := int(SSIZE)
 
+	var value int
 	var subgrid []int
 	for i := sx; i < sx+ssize; i++ {
 		for j := sy; j < sy+ssize; j++ {
-			subgrid = append(subgrid, grid[i][j])
+			value = grid[i][j]
+			if value != 0 {
+				subgrid = append(subgrid, value)
+			}
 		}
 	}
 
