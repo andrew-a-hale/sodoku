@@ -1,7 +1,7 @@
-import math
 import sys
 
 SIZE = 9
+SSIZE = 3
 GRID_T = list[list[int]]
 CELL_T = tuple[int, int]
 DIGITS = set(range(1, 10))
@@ -20,11 +20,31 @@ def validate_grid_string(grid_string: str) -> list[int]:
         raise InvalidInput("malformed input string")
 
 
+def check_duplication(grid: list[int]):
+    for i in range(SIZE):
+        tmp = [x for x in get_row(grid, i) if x > 0]
+        if len(tmp) != len(set(tmp)):
+            raise InvalidInput(f"duplication found in row {i+1}")
+
+    for i in range(SIZE):
+        tmp = [x for x in get_col(grid, i) if x > 0]
+        if len(tmp) != len(set(tmp)):
+            raise InvalidInput(f"duplication found in column {i+1}")
+
+    for i in range(SIZE):
+        sx, sy = i // SSIZE, i % SSIZE
+        tmp = [x for x in get_subgrid(grid, (sx, sy)) if x > 0]
+        if len(tmp) != len(set(tmp)):
+            raise InvalidInput(f"duplication found in subgrid {i+1}")
+
+
 def read_grid(grid_string: str) -> GRID_T:
     digits = validate_grid_string(grid_string)
     grid = []
     for i in range(SIZE):
         grid.append(digits[i * SIZE : (i + 1) * SIZE])
+
+    check_duplication(grid)
 
     return grid
 
@@ -91,15 +111,6 @@ def get_moves_for_cell(grid: GRID_T, cell: CELL_T) -> set[int]:
     return candidates
 
 
-def is_solved(grid: GRID_T) -> bool:
-    for row in grid:
-        for cell in row:
-            if cell == 0:
-                return False
-
-    return True
-
-
 def get_row(grid: GRID_T, row_idx: int) -> list[int]:
     return grid[row_idx]
 
@@ -111,7 +122,7 @@ def get_col(grid: GRID_T, col_idx: int) -> list[int]:
 def get_subgrid(grid: GRID_T, cell: CELL_T) -> list[int]:
     sg_x = cell[0] // 3 * 3
     sg_y = cell[1] // 3 * 3
-    subgrid_size = int(math.sqrt(SIZE))
+    subgrid_size = SSIZE
 
     return [
         grid[row][col]

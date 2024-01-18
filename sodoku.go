@@ -18,11 +18,13 @@ type Cell struct {
 	col int
 }
 
-type Moves []Move
-type Move struct {
-	cell Cell
-	val  int
-}
+type (
+	Moves []Move
+	Move  struct {
+		cell Cell
+		val  int
+	}
+)
 
 type Grid [][]int
 
@@ -108,7 +110,7 @@ func (grid Grid) solve() (bool, error) {
 		}
 	}
 
-	return false, fmt.Errorf("Error: Failed to solve to sodoku")
+	return false, fmt.Errorf("failed to solve to sodoku")
 }
 
 func (grid Grid) getSubGrid(cell Cell) []int {
@@ -178,7 +180,15 @@ func newGrid() Grid {
 }
 
 func hasDuplication(xs []int) bool {
-	return true
+	tmp := slices.Clone(xs)
+	slices.Sort(tmp)
+	for i := 1; i < len(tmp); i++ {
+		if tmp[i] != 0 && tmp[i] == tmp[i-1] {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (grid Grid) hasDuplication() error {
@@ -186,24 +196,23 @@ func (grid Grid) hasDuplication() error {
 	// check rows
 	for i := 0; i < SIZE; i++ {
 		if hasDuplication(grid[i]) {
-			return fmt.Errorf("")
+			return fmt.Errorf("row %d contains a duplicate", i+1)
 		}
 	}
 
 	// check cols
 	for i := 0; i < SIZE; i++ {
 		if hasDuplication(grid[:][i]) {
-			return fmt.Errorf("")
+			return fmt.Errorf("column %d contains a duplicate", i+1)
 		}
 	}
 
 	// check subgrid
 	for i := 0; i < SIZE; i++ {
-		panic("todo!")
-		sx := i
-		sy := i
+		sx := i / SSIZE
+		sy := i % SSIZE
 		if hasDuplication(grid.getSubGrid(Cell{row: sx, col: sy})) {
-			return fmt.Errorf("")
+			return fmt.Errorf("subgrid %d contains a duplicate", i+1)
 		}
 	}
 
@@ -212,9 +221,9 @@ func (grid Grid) hasDuplication() error {
 
 func parseGridString(s string) (grid Grid, err error) {
 	tmp := newGrid()
-	flatGrid := strings.Split(strings.Replace(s, ".", "0", -1), "")
+	flatGrid := strings.Split(strings.ReplaceAll(s, ".", "0"), "")
 	if len(flatGrid) != SIZE*SIZE {
-		return grid, fmt.Errorf("Error: unable to parse input, had size %d, expected %d", len(flatGrid), SIZE*SIZE)
+		return grid, fmt.Errorf("unable to parse input, had size %d, expected %d", len(flatGrid), SIZE*SIZE)
 	}
 
 	// construct grid
@@ -223,11 +232,12 @@ func parseGridString(s string) (grid Grid, err error) {
 			parsed, err := strconv.ParseInt(flatGrid[i*SIZE+j], 10, 0)
 			tmp[i][j] = int(parsed)
 			if err != nil {
-				return grid, fmt.Errorf("Error: unable to parse digit in input: %s", flatGrid[i*SIZE+j])
+				return grid, fmt.Errorf("unable to parse digit in input: %s", flatGrid[i*SIZE+j])
 			}
 		}
 	}
 
+	tmp.print()
 	if err := tmp.hasDuplication(); err != nil {
 		return nil, err
 	}
