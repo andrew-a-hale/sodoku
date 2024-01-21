@@ -13,20 +13,18 @@ const (
 	SSIZE int = 3 // subgrid size
 )
 
-type Cell struct {
-	row int
-	col int
-}
-
 type (
+	Grid [][]int
+	Cell struct {
+		row int
+		col int
+	}
 	Moves []Move
 	Move  struct {
 		cell Cell
 		val  int
 	}
 )
-
-type Grid [][]int
 
 func (grid Grid) nextCell() (Cell, bool) {
 	for r, row := range grid {
@@ -230,14 +228,13 @@ func parseGridString(s string) (grid Grid, err error) {
 	for i := 0; i < SIZE; i++ {
 		for j := 0; j < SIZE; j++ {
 			parsed, err := strconv.ParseInt(flatGrid[i*SIZE+j], 10, 0)
-			tmp[i][j] = int(parsed)
 			if err != nil {
 				return grid, fmt.Errorf("unable to parse digit in input: %s", flatGrid[i*SIZE+j])
 			}
+			tmp[i][j] = int(parsed)
 		}
 	}
 
-	tmp.print()
 	if err := tmp.hasDuplication(); err != nil {
 		return nil, err
 	}
@@ -256,6 +253,7 @@ func main() {
 		panic(err)
 	}
 
+	grid.print()
 	grid.solve()
 	grid.print()
 }

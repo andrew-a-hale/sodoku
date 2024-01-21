@@ -20,7 +20,7 @@ def validate_grid_string(grid_string: str) -> list[int]:
         raise InvalidInput("malformed input string")
 
 
-def check_duplication(grid: list[int]):
+def check_duplication(grid: GRID_T):
     for i in range(SIZE):
         tmp = [x for x in get_row(grid, i) if x > 0]
         if len(tmp) != len(set(tmp)):
@@ -94,7 +94,7 @@ def is_valid_move(grid: GRID_T, cell: CELL_T, move: int) -> bool:
 
     # check subgrid
     subgrid = get_subgrid(grid, cell)
-    cell_to_idx = (cell[0] % 3) * 3 + (cell[1] % 3)
+    cell_to_idx = (cell[0] % SSIZE) * SSIZE + (cell[1] % SSIZE)
     for i, val in enumerate(subgrid):
         if i == cell_to_idx and val == move:
             return False
@@ -120,8 +120,8 @@ def get_col(grid: GRID_T, col_idx: int) -> list[int]:
 
 
 def get_subgrid(grid: GRID_T, cell: CELL_T) -> list[int]:
-    sg_x = cell[0] // 3 * 3
-    sg_y = cell[1] // 3 * 3
+    sg_x = cell[0] // SSIZE * SSIZE
+    sg_y = cell[1] // SSIZE * SSIZE
     subgrid_size = SSIZE
 
     return [
@@ -135,10 +135,14 @@ def print_grid(grid: GRID_T) -> None:
     for row in grid:
         print(" ".join(str(cell) for cell in row))
 
+    print()
+
 
 if __name__ == "__main__":
     grid_string = sys.argv[1]
 
     grid = read_grid(grid_string)
+
+    print_grid(grid)
     solve(grid)
     print_grid(grid)
