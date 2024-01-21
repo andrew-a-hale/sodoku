@@ -9,12 +9,11 @@ import (
 )
 
 const (
-	SIZE  int = 9 // grid size
-	SSIZE int = 3 // subgrid size
+	SIZE  = 9
+	SSIZE = 3
 )
 
 type (
-	Grid [][]int
 	Cell struct {
 		row int
 		col int
@@ -26,8 +25,16 @@ type (
 	}
 )
 
+type Grid struct {
+	rows     [][]int
+	cols     [][]int
+	subgrids [][]int
+	size     int
+	ssize    int
+}
+
 func (grid Grid) nextCell() (Cell, bool) {
-	for r, row := range grid {
+	for r, row := range grid.rows {
 		for c, cell := range row {
 			if cell == 0 {
 				return Cell{row: r, col: c}, true
@@ -53,24 +60,23 @@ func (grid Grid) getMoves(cell Cell) Moves {
 	remaining := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
 
 	// check row
-	for _, val := range grid[cell.row] {
+	for _, val := range grid.rows[cell.row] {
 		if val != 0 && slices.Contains(remaining, val) {
 			remaining = removeDigit(remaining, val)
 		}
 	}
 
 	// check col
-	for i := 0; i < SIZE; i++ {
-		val := grid[i][cell.col]
+	for _, val := range grid.cols[cell.col] {
 		if val != 0 && slices.Contains(remaining, val) {
 			remaining = removeDigit(remaining, val)
 		}
 	}
 
 	// check subgrid
-	subgrid := grid.getSubGrid(cell)
-	for _, val := range subgrid {
-		if slices.Contains(remaining, val) {
+	subgrid, _ := grid.cellToSubgridIndexes(cell)
+	for _, val := range grid.subgrids[subgrid] {
+		if val != 0 && slices.Contains(remaining, val) {
 			remaining = removeDigit(remaining, val)
 		}
 	}
@@ -84,11 +90,19 @@ func (grid Grid) getMoves(cell Cell) Moves {
 }
 
 func (grid Grid) makeMove(move Move) {
-	grid[move.cell.row][move.cell.col] = move.val
+	grid.rows[move.cell.row][move.cell.col] = move.val
+	grid.cols[move.cell.col][move.cell.row] = move.val
+
+	subgrid, element := grid.cellToSubgridIndexes(move.cell)
+	grid.subgrids[subgrid][element] = move.val
 }
 
 func (grid Grid) clearCell(cell Cell) {
-	grid[cell.row][cell.col] = 0
+	grid.rows[cell.row][cell.col] = 0
+	grid.cols[cell.col][cell.row] = 0
+
+	subgrid, element := grid.cellToSubgridIndexes(cell)
+	grid.subgrids[subgrid][element] = 0
 }
 
 func (grid Grid) solve() (bool, error) {
@@ -99,7 +113,7 @@ func (grid Grid) solve() (bool, error) {
 
 	moves := grid.getMoves(cell)
 	for _, move := range moves {
-		if grid.isValidMove(move) {
+		if len(moves) == 1 || grid.isValidMove(move) {
 			grid.makeMove(move)
 			if solved, _ := grid.solve(); solved {
 				return true, nil
@@ -111,46 +125,38 @@ func (grid Grid) solve() (bool, error) {
 	return false, fmt.Errorf("failed to solve to sodoku")
 }
 
-func (grid Grid) getSubGrid(cell Cell) []int {
-	sx := cell.row / SSIZE * SSIZE
-	sy := cell.col / SSIZE * SSIZE
-
-	var value int
-	var subgrid []int
-	for i := sx; i < sx+SSIZE; i++ {
-		for j := sy; j < sy+SSIZE; j++ {
-			value = grid[i][j]
-			if value != 0 {
-				subgrid = append(subgrid, value)
-			}
-		}
-	}
-
-	return subgrid
+// converts (r, c) => nth subgrid, ith cell
+// eg. (0, 0) => 0, 0 (first)
+// eg. (3, 3) => 4, 0
+// eg. (8, 8) => 8, 8 (last)
+func (grid Grid) cellToSubgridIndexes(cell Cell) (int, int) {
+	subgrid := cell.row/grid.ssize*grid.ssize + cell.col/grid.ssize
+	element := cell.row%grid.ssize*grid.ssize + cell.col%grid.ssize
+	return subgrid, element
 }
 
 func (grid Grid) isValidMove(move Move) bool {
 	// row check
-	row := grid[move.cell.row]
+	row := grid.rows[move.cell.row]
 	for i, val := range row {
-		if val == move.val && i != int(move.cell.col) {
+		if val == move.val && i != move.cell.col {
 			return false
 		}
 	}
 
 	// col check
-	for i := 0; i < SIZE; i++ {
-		val := grid[i][move.cell.col]
-		if i != int(move.cell.row) && val == move.val {
+	col := grid.cols[move.cell.col]
+	for i, val := range col {
+		if val == move.val && i != move.cell.row {
 			return false
 		}
 	}
 
 	// subgrid check
-	subgrid := grid.getSubGrid(move.cell)
-	idx := move.cell.row%SSIZE*SSIZE + move.cell.col%SSIZE
+	idx, el := grid.cellToSubgridIndexes(move.cell)
+	subgrid := grid.subgrids[idx]
 	for i, val := range subgrid {
-		if i == idx && val == move.val {
+		if val == move.val && i != el {
 			return false
 		}
 	}
@@ -159,22 +165,13 @@ func (grid Grid) isValidMove(move Move) bool {
 }
 
 func (grid Grid) print() {
-	for i := 0; i < SIZE; i++ {
-		for j := 0; j < SIZE; j++ {
-			fmt.Printf("%d ", grid[i][j])
+	for i := 0; i < grid.size; i++ {
+		for j := 0; j < grid.size; j++ {
+			fmt.Printf("%d ", grid.rows[i][j])
 		}
 		fmt.Println()
 	}
 	fmt.Println()
-}
-
-func newGrid() Grid {
-	tmp := [][]int{}
-	for i := 0; i < SIZE; i++ {
-		tmp = append(tmp, []int{0, 0, 0, 0, 0, 0, 0, 0, 0})
-	}
-
-	return tmp
 }
 
 func hasDuplication(xs []int) bool {
@@ -190,26 +187,19 @@ func hasDuplication(xs []int) bool {
 }
 
 func (grid Grid) hasDuplication() error {
-	// validate grid
-	// check rows
-	for i := 0; i < SIZE; i++ {
-		if hasDuplication(grid[i]) {
+	for i := 0; i < grid.size; i++ {
+		// check rows
+		if hasDuplication(grid.rows[i]) {
 			return fmt.Errorf("row %d contains a duplicate", i+1)
 		}
-	}
 
-	// check cols
-	for i := 0; i < SIZE; i++ {
-		if hasDuplication(grid[:][i]) {
-			return fmt.Errorf("column %d contains a duplicate", i+1)
+		// check cols
+		if hasDuplication(grid.cols[i]) {
+			return fmt.Errorf("col %d contains a duplicate", i+1)
 		}
-	}
 
-	// check subgrid
-	for i := 0; i < SIZE; i++ {
-		sx := i / SSIZE
-		sy := i % SSIZE
-		if hasDuplication(grid.getSubGrid(Cell{row: sx, col: sy})) {
+		// check subgrids
+		if hasDuplication(grid.subgrids[i]) {
 			return fmt.Errorf("subgrid %d contains a duplicate", i+1)
 		}
 	}
@@ -217,29 +207,45 @@ func (grid Grid) hasDuplication() error {
 	return nil
 }
 
-func parseGridString(s string) (grid Grid, err error) {
-	tmp := newGrid()
+func newGrid(s string) (Grid, error) {
+	// make empty grid
+	rows := make([][]int, SIZE)
+	cols := make([][]int, SIZE)
+	subgrids := make([][]int, SIZE)
+	for i := 0; i < SIZE; i++ {
+		rows[i] = []int{0, 0, 0, 0, 0, 0, 0, 0, 0}
+		cols[i] = []int{0, 0, 0, 0, 0, 0, 0, 0, 0}
+		subgrids[i] = []int{0, 0, 0, 0, 0, 0, 0, 0, 0}
+	}
+	grid := Grid{rows: rows, cols: cols, subgrids: subgrids, size: SIZE, ssize: SSIZE}
+
+	// parse sodoku string
 	flatGrid := strings.Split(strings.ReplaceAll(s, ".", "0"), "")
-	if len(flatGrid) != SIZE*SIZE {
-		return grid, fmt.Errorf("unable to parse input, had size %d, expected %d", len(flatGrid), SIZE*SIZE)
+	if len(flatGrid) != grid.size*grid.size {
+		return grid, fmt.Errorf("unable to parse input, had size %d, expected %d", len(flatGrid), grid.size*grid.size)
 	}
 
-	// construct grid
-	for i := 0; i < SIZE; i++ {
-		for j := 0; j < SIZE; j++ {
-			parsed, err := strconv.ParseInt(flatGrid[i*SIZE+j], 10, 0)
+	// populate grid
+	for i := 0; i < grid.size; i++ {
+		for j := 0; j < grid.size; j++ {
+			parsed, err := strconv.ParseInt(flatGrid[i*grid.size+j], 10, 0)
 			if err != nil {
-				return grid, fmt.Errorf("unable to parse digit in input: %s", flatGrid[i*SIZE+j])
+				return grid, fmt.Errorf("unable to parse digit in input: %s", flatGrid[i*grid.size+j])
 			}
-			tmp[i][j] = int(parsed)
+			grid.rows[i][j] = int(parsed)
+			grid.cols[j][i] = int(parsed)
+
+			idx, el := grid.cellToSubgridIndexes(Cell{row: i, col: j})
+			grid.subgrids[idx][el] = int(parsed)
 		}
 	}
 
-	if err := tmp.hasDuplication(); err != nil {
-		return nil, err
+	// check for valid input
+	if err := grid.hasDuplication(); err != nil {
+		return grid, err
 	}
 
-	return tmp, nil
+	return grid, nil
 }
 
 func main() {
@@ -248,7 +254,7 @@ func main() {
 		gridString = os.Args[1]
 	}
 
-	grid, err := parseGridString(gridString)
+	grid, err := newGrid(gridString)
 	if err != nil {
 		panic(err)
 	}
