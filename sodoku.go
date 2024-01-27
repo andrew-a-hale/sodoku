@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"runtime/pprof"
 	"slices"
 	"strconv"
 	"strings"
@@ -46,14 +48,9 @@ func (grid Grid) nextCell() (Cell, bool) {
 }
 
 func removeDigit(digits []int, x int) []int {
-	tmp := digits[:0]
-	for _, d := range digits {
-		if d != x {
-			tmp = append(tmp, d)
-		}
-	}
-
-	return tmp
+	idx := slices.Index(digits, x)
+	copy(digits[idx:], digits[idx+1:])
+	return digits[:len(digits)-1]
 }
 
 func (grid Grid) getMoves(cell Cell) Moves {
@@ -125,7 +122,7 @@ func (grid Grid) solve() (bool, error) {
 	return false, fmt.Errorf("failed to solve to sodoku")
 }
 
-// converts (r, c) => nth subgrid, ith cell
+// converts (r, c) => nth subgrid, ith el of the subgrid
 // eg. (0, 0) => 0, 0 (first)
 // eg. (3, 3) => 4, 0
 // eg. (8, 8) => 8, 8 (last)
@@ -175,11 +172,13 @@ func (grid Grid) print() {
 }
 
 func hasDuplication(xs []int) bool {
-	tmp := slices.Clone(xs)
-	slices.Sort(tmp)
-	for i := 1; i < len(tmp); i++ {
-		if tmp[i] != 0 && tmp[i] == tmp[i-1] {
+	var seen []int
+	for _, x := range xs {
+		if slices.Contains(seen, x) {
 			return true
+		}
+		if x > 0 {
+			seen = append(seen, x)
 		}
 	}
 
@@ -249,6 +248,17 @@ func newGrid(s string) (Grid, error) {
 }
 
 func main() {
+	f, err := os.Create("p.prof")
+	if err != nil {
+		log.Fatal("failed to create p.prof", err)
+	}
+	defer f.Close()
+
+	if err := pprof.StartCPUProfile(f); err != nil {
+		log.Fatal("failed to start profiling", err)
+	}
+	defer pprof.StopCPUProfile()
+
 	var gridString string
 	if len(os.Args) > 0 {
 		gridString = os.Args[1]
